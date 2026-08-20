@@ -4,6 +4,7 @@ from database import get_db
 from models import User
 from schemas import UserCreate, UserLogin, UserOut, Token
 from auth import hash_password, verify_password, create_access_token
+from deps import get_current_user
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -38,3 +39,7 @@ def logout():
     # The frontend deletes its stored token. This endpoint exists mainly
     # for API symmetry and as a place to add token-blacklisting later if needed.
     return {"message": "Logged out"}
+
+@router.get("/me", response_model=UserOut)
+def get_me(current_user: User = Depends(get_current_user)):
+    return current_user
