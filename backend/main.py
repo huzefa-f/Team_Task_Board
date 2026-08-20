@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from routers import auth, project
+from routers import auth, project, tasks
 
 app = FastAPI(title="Team Task Board API")
 
@@ -16,6 +16,7 @@ app.add_middleware(
 
 app.include_router(auth.router)
 app.include_router(project.router)
+app.include_router(tasks.router)
 
 @app.get("/health")
 def health_check():

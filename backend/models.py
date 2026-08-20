@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, DateTime, Enum, ForeignKey, UniqueConstraint
+from sqlalchemy import Column, Integer, String, DateTime, Enum, ForeignKey, UniqueConstraint, Text, Date
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from database import Base
@@ -40,3 +40,34 @@ class ProjectMember(Base):
 
     project = relationship("Project", back_populates="members")
     user = relationship("User")
+
+
+class StatusEnum(str, enum.Enum):
+    todo = "todo"
+    in_progress = "in_progress"
+    done = "done"   
+
+
+class PriorityEnum(str, enum.Enum):
+    low = "low"
+    medium = "medium"
+    high = "high"
+
+
+class Task(Base):
+    __tablename__ = "tasks"
+
+    id = Column(Integer, primary_key=True, index=True)
+    project_id = Column(Integer, ForeignKey("projects.id"), nullable=False)
+    title = Column(String, nullable=False)
+    description = Column(Text, nullable=True)
+    status = Column(Enum(StatusEnum), nullable=False, default=StatusEnum.todo)
+    priority = Column(Enum(PriorityEnum), nullable=False, default=PriorityEnum.medium)
+    due_date = Column(Date, nullable=True)
+    assignee_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    created_by = Column(Integer, ForeignKey("users.id"), nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+    project = relationship("Project")
+    assignee = relationship("User", foreign_keys=[assignee_id])         
