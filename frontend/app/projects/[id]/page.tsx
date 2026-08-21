@@ -25,6 +25,8 @@ function ProjectBoard({ projectId }: { projectId: number }) {
   const [dueDate, setDueDate] = useState("");
   const [assigneeId, setAssigneeId] = useState<string>("");
   const [creating, setCreating] = useState(false);
+  const [filterAssignee, setFilterAssignee] = useState<string>("");
+  const [filterPriority, setFilterPriority] = useState<string>("");
 
   async function loadAll() {
     setLoading(true);
@@ -49,6 +51,22 @@ function ProjectBoard({ projectId }: { projectId: number }) {
       setLoading(false);
     }
   }
+
+  async function handleStatusChange(taskId: number, newStatus: Task["status"]) {
+  // Optimistic update: change the UI immediately, before the API confirms it
+  const previousTasks = tasks;
+  setTasks((current) =>
+    current.map((t) => (t.id === taskId ? { ...t, status: newStatus } : t))
+  );
+
+  try {
+    await api.patch(`/projects/${projectId}/tasks/${taskId}`, { status: newStatus });
+  } catch (err) {
+    // Roll back on failure
+    setTasks(previousTasks);
+    setError(err instanceof ApiError ? err.message : "Failed to update task status");
+  }
+}
 
   useEffect(() => {
     loadAll();
@@ -91,6 +109,12 @@ function ProjectBoard({ projectId }: { projectId: number }) {
       </div>
     );
   }
+
+  const filteredTasks = tasks.filter((t) => {
+  if (filterAssignee && String(t.assignee_id) !== filterAssignee) return false;
+  if (filterPriority && t.priority !== filterPriority) return false;
+  return true;
+});
 
   return (
     <main className="max-w-5xl mx-auto p-6 space-y-6">
@@ -148,22 +172,47 @@ function ProjectBoard({ projectId }: { projectId: number }) {
         </button>
       </form>
 
+      <div className="flex gap-2">
+        <select
+            value={filterAssignee}
+            onChange={(e) => setFilterAssignee(e.target.value)}
+            className="border rounded px-3 py-2 text-sm"
+        >
+            <option value="">All assignees</option>
+            {members.map((m) => (
+            <option key={m.user_id} value={m.user_id}>
+                {m.user.name}
+            </option>
+            ))}
+        </select>
+        <select
+            value={filterPriority}
+            onChange={(e) => setFilterPriority(e.target.value)}
+            className="border rounded px-3 py-2 text-sm"
+        >
+            <option value="">All priorities</option>
+            <option value="low">Low</option>
+            <option value="medium">Medium</option>
+            <option value="high">High</option>
+        </select>
+    </div>
+
       <div className="grid grid-cols-3 gap-4">
         {COLUMNS.map((col) => (
-          <div key={col.key} className="space-y-3">
-            <h2 className="font-medium text-sm text-gray-600">
-              {col.label} ({tasks.filter((t) => t.status === col.key).length})
-            </h2>
-            <div className="space-y-2">
-              {tasks
-                .filter((t) => t.status === col.key)
-                .map((task) => (
-                  <TaskCard key={task.id} task={task} />
-                ))}
+            <div key={col.key} className="space-y-3">
+                <h2 className="font-medium text-sm text-gray-600">
+                    {col.label} ({filteredTasks.filter((t) => t.status === col.key).length})
+                </h2>
+                <div className="space-y-2">
+                        {filteredTasks
+                    .filter((t) => t.status === col.key)
+                    .map((task) => (
+                        <TaskCard key={task.id} task={task} onStatusChange={handleStatusChange} />
+                    ))}
+                </div>
             </div>
-          </div>
         ))}
-      </div>
+        </div>
     </main>
   );
 }
