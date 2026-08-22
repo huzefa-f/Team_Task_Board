@@ -5,7 +5,7 @@ from database import get_db
 from models import Task, ProjectMember, User, ActionEnum
 from schemas import TaskCreate, TaskUpdate, TaskOut
 from deps import get_current_user, get_project_member
-from activity import log_activity
+from activity import log_activity, create_notification
 
 router = APIRouter(prefix="/projects/{project_id}/tasks", tags=["tasks"])
 
@@ -31,25 +31,7 @@ def list_tasks(
         query = query.filter(Task.priority == priority)
     return query.all()
 
-@router.patch("/{task_id}", response_model=TaskOut)
-def update_task(
-    project_id: int,
-    task_id: int,
-    payload: TaskUpdate,
-    member: ProjectMember = Depends(get_project_member),
-    db: Session = Depends(get_db),
-):
-    task = db.query(Task).filter(Task.id == task_id, Task.project_id == project_id).first()
-    if not task:
-        raise HTTPException(status_code=404, detail="Task not found")
 
-    update_data = payload.model_dump(exclude_unset=True)
-    for field, value in update_data.items():
-        setattr(task, field, value)
-
-    db.commit()
-    db.refresh(task)
-    return task
 
 @router.delete("/{task_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_task(
@@ -116,6 +98,16 @@ def create_task(
             detail=f"Assigned to {assignee.name}",
         )
 
+     # Don't notify someone about assigning a task to themselves
+    if payload.assignee_id != current_user.id:
+        create_notification(
+            db,
+            user_id=payload.assignee_id,
+            project_id=project_id,
+            task_id=task.id,
+            message=f"You were assigned to \"{task.title}\"",
+        )   
+
     db.commit()
     db.refresh(task)
     return task 
@@ -163,6 +155,15 @@ def update_task(
             task_title=task.title,
             detail=f"Assigned to {new_assignee.name}" if new_assignee else "Unassigned",
         )
+
+        if new_assignee is not None and new_assignee.id != current_user.id:
+            create_notification(
+                db,
+                user_id=new_assignee.id,
+                project_id=project_id,
+                task_id=task.id,
+                message=f"You were assigned to \"{task.title}\"",
+            )
 
     other_fields_changed = any(
         k in update_data for k in ("title", "description", "priority", "due_date")

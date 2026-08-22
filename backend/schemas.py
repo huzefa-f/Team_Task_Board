@@ -80,6 +80,29 @@ class TaskOut(BaseModel):
 
     class Config:
         from_attributes = True
+
+class ActivityLogOut(BaseModel):
+    id: int
+    actor_name: str
+    task_title: Optional[str]
+    action: str
+    detail: Optional[str]
+    created_at: datetime
+
+    class Config:
+        from_attributes = True        
        
 
-          
+class NotificationOut(BaseModel):
+    id: int
+    task_id: Optional[int]
+    project_id: int
+    message: str
+    is_read: bool
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+class UnreadCountOut(BaseModel):
+    count: int                

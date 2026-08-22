@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, DateTime, Enum, ForeignKey, UniqueConstraint, Text, Date
+from sqlalchemy import Column, Integer, String, DateTime, Enum, ForeignKey, UniqueConstraint, Text, Date, Boolean
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from database import Base
@@ -70,4 +70,36 @@ class Task(Base):
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 
     project = relationship("Project")
-    assignee = relationship("User", foreign_keys=[assignee_id])         
+    assignee = relationship("User", foreign_keys=[assignee_id]) 
+
+
+class ActionEnum(str, enum.Enum):
+    task_created = "task_created"
+    task_assigned = "task_assigned"
+    status_changed = "status_changed"
+    task_edited = "task_edited"
+    member_invited = "member_invited"
+
+class ActivityLog(Base):
+    __tablename__ = "activity_logs"
+
+    id = Column(Integer, primary_key=True, index=True)
+    project_id = Column(Integer, ForeignKey("projects.id"), nullable=False)
+    actor_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    actor_name = Column(String, nullable=False)          # denormalized snapshot
+    task_id = Column(Integer, ForeignKey("tasks.id"), nullable=True)
+    task_title = Column(String, nullable=True)           # denormalized snapshot
+    action = Column(Enum(ActionEnum), nullable=False)
+    detail = Column(String, nullable=True)                # e.g. "todo -> in_progress"
+    created_at = Column(DateTime(timezone=True), server_default=func.now()) 
+
+class Notification(Base):
+    __tablename__ = "notifications"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    task_id = Column(Integer, ForeignKey("tasks.id"), nullable=True)
+    project_id = Column(Integer, ForeignKey("projects.id"), nullable=False)
+    message = Column(String, nullable=False)
+    is_read = Column(Boolean, nullable=False, default=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())               
