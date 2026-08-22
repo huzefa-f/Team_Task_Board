@@ -7,6 +7,7 @@ import { api, ApiError } from "@/lib/api";
 import { Project, ProjectMember, Task } from "@/lib/types";
 import { ActivityLog } from "@/components/activity-log";
 import { ActivityLogEntry } from "@/lib/types";
+import { AppHeader } from "@/components/app-header";
 
 const COLUMNS: { key: Task["status"]; label: string }[] = [
   { key: "todo", label: "To Do" },
@@ -124,6 +125,7 @@ function ProjectBoard({ projectId }: { projectId: number }) {
 
   return (
     <main className="max-w-5xl mx-auto p-6 space-y-6">
+      <AppHeader />
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold">{project?.name}</h1>
         <button onClick={() => router.push("/projects")} className="text-sm underline">

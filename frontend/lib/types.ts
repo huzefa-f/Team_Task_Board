@@ -41,3 +41,12 @@ export type ActivityLogEntry = {
   detail: string | null;
   created_at: string;
 };
+
+export type NotificationEntry = {
+  id: number;
+  task_id: number | null;
+  project_id: number;
+  message: string;
+  is_read: boolean;
+  created_at: string;
+};

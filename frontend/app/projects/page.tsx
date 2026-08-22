@@ -4,6 +4,7 @@ import Link from "next/link";
 import { ProtectedRoute } from "@/components/protected-route";
 import { useAuth } from "@/lib/auth-context";
 import { api, ApiError } from "@/lib/api";
+import { AppHeader } from "@/components/app-header";
 
 type Project = {
   id: number;
@@ -53,13 +54,8 @@ function ProjectsList() {
 
   return (
     <main className="max-w-2xl mx-auto p-6 space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-semibold">My Projects</h1>
-        <div className="flex items-center gap-3 text-sm">
-          <span>{user?.name}</span>
-          <button onClick={logout} className="underline">Log out</button>
-        </div>
-      </div>
+      <AppHeader />
+      <h1 className="text-2xl font-semibold">My Projects</h1>    
 
       <form onSubmit={handleCreate} className="flex gap-2">
         <input
