@@ -137,7 +137,7 @@ def update_task(
             action=ActionEnum.status_changed,
             task_id=task.id,
             task_title=task.title,
-            detail=f"{task.status.value} -> {update_data['status'].value}",
+            detail=f"{task.status.value} -> {update_data['status']}",
         )
 
     if "assignee_id" in update_data and update_data["assignee_id"] != task.assignee_id:
