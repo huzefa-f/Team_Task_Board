@@ -1,9 +1,11 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session, joinedload
 from database import get_db
-from models import User, Project, ProjectMember, RoleEnum
-from schemas import ProjectCreate, ProjectOut, InviteMemberRequest, ProjectMemberOut
+from models import User, Project, ProjectMember, RoleEnum,  ActionEnum, ActivityLog
+from schemas import ProjectCreate, ProjectOut, InviteMemberRequest, ProjectMemberOut, ActivityLogOut
 from deps import get_current_user, get_project_member
+from activity import log_activity
+
 
 router = APIRouter(prefix="/projects", tags=["projects"])
 
@@ -87,6 +89,14 @@ def invite_member(
 
     new_member = ProjectMember(project_id=project_id, user_id=user_to_invite.id, role=RoleEnum.member)
     db.add(new_member)
+    log_activity(
+        db,
+        project_id=project_id,
+        actor_id=member.user_id,
+        actor_name=db.query(User).filter(User.id == member.user_id).first().name,
+        action=ActionEnum.member_invited,  # reuse or consider a dedicated 'member_invited' action later
+        detail=f"Invited {user_to_invite.name} to the project",
+    )
     db.commit()
     db.refresh(new_member)
     return new_member
@@ -101,5 +111,20 @@ def list_members(
         db.query(ProjectMember)
         .options(joinedload(ProjectMember.user))
         .filter(ProjectMember.project_id == project_id)
+        .all()
+    )
+
+@router.get("/{project_id}/activity", response_model=list[ActivityLogOut])
+def get_activity_log(
+    project_id: int,
+    member: ProjectMember = Depends(get_project_member),
+    db: Session = Depends(get_db),
+    limit: int = 50,
+):
+    return (
+        db.query(ActivityLog)
+        .filter(ActivityLog.project_id == project_id)
+        .order_by(ActivityLog.created_at.desc())
+        .limit(limit)
         .all()
     )
