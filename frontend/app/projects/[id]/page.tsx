@@ -8,6 +8,8 @@ import { Project, ProjectMember, Task } from "@/lib/types";
 import { ActivityLog } from "@/components/activity-log";
 import { ActivityLogEntry } from "@/lib/types";
 import { AppHeader } from "@/components/app-header";
+import { InviteMember } from "@/components/invite-member";
+import { useAuth } from "@/lib/auth-context";
 
 const COLUMNS: { key: Task["status"]; label: string }[] = [
   { key: "todo", label: "To Do" },
@@ -32,6 +34,9 @@ function ProjectBoard({ projectId }: { projectId: number }) {
   const [filterPriority, setFilterPriority] = useState<string>("");
   const [activity, setActivity] = useState<ActivityLogEntry[]>([]);
   const [showActivity, setShowActivity] = useState(false);
+  const { user } = useAuth();
+  const currentUserMembership = members.find((m) => m.user_id === user?.id);
+  const isAdmin = currentUserMembership?.role === "admin";
 
   async function loadAll() {
     setLoading(true);
@@ -192,6 +197,13 @@ function ProjectBoard({ projectId }: { projectId: number }) {
           Add task
         </button>
       </form>
+
+      {isAdmin && (
+        <div className="border rounded p-4 space-y-2">
+          <p className="font-medium text-sm">Invite a member</p>
+          <InviteMember projectId={projectId} onInvited={loadAll} />
+        </div>
+      )}
 
       <div className="flex gap-2">
         <select
