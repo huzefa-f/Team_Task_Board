@@ -87,11 +87,11 @@ function ProjectsList() {
       ) : (
         <ul className="space-y-2">
           {projects.map((project) => (
-            <li key={project.id} className="border rounded p-4 hover:bg-gray-50">
-              <Link href={`/projects/${project.id}`} className="font-medium">
-                {project.name}
-              </Link>
-            </li>
+              <li key={project.id} className="border rounded hover:bg-gray-50">
+                <Link href={`/projects/${project.id}`} className="block p-4 font-medium">
+                  {project.name}
+                </Link>
+              </li>
           ))}
         </ul>
       )}
