@@ -32,3 +32,12 @@ export type Task = {
   created_at: string;
   updated_at: string;
 };
+
+export type ActivityLogEntry = {
+  id: number;
+  actor_name: string;
+  task_title: string | null;
+  action: "task_created" | "task_assigned" | "status_changed" | "task_edited" | "member_invited";
+  detail: string | null;
+  created_at: string;
+};

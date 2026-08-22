@@ -5,6 +5,8 @@ import { ProtectedRoute } from "@/components/protected-route";
 import { TaskCard } from "@/components/task-card";
 import { api, ApiError } from "@/lib/api";
 import { Project, ProjectMember, Task } from "@/lib/types";
+import { ActivityLog } from "@/components/activity-log";
+import { ActivityLogEntry } from "@/lib/types";
 
 const COLUMNS: { key: Task["status"]; label: string }[] = [
   { key: "todo", label: "To Do" },
@@ -27,18 +29,22 @@ function ProjectBoard({ projectId }: { projectId: number }) {
   const [creating, setCreating] = useState(false);
   const [filterAssignee, setFilterAssignee] = useState<string>("");
   const [filterPriority, setFilterPriority] = useState<string>("");
+  const [activity, setActivity] = useState<ActivityLogEntry[]>([]);
+  const [showActivity, setShowActivity] = useState(false);
 
   async function loadAll() {
     setLoading(true);
     try {
-      const [projectData, membersData, tasksData] = await Promise.all([
+      const [projectData, membersData, tasksData, activityData] = await Promise.all([
         api.get<Project>(`/projects/${projectId}`),
         api.get<ProjectMember[]>(`/projects/${projectId}/members`),
         api.get<Task[]>(`/projects/${projectId}/tasks`),
+        api.get<ActivityLogEntry[]>(`/projects/${projectId}/activity`),
       ]);
       setProject(projectData);
       setMembers(membersData);
       setTasks(tasksData);
+      setActivity(activityData);
     } catch (err) {
       if (err instanceof ApiError && err.status === 403) {
         setError("You don't have access to this project.");
@@ -50,22 +56,22 @@ function ProjectBoard({ projectId }: { projectId: number }) {
     } finally {
       setLoading(false);
     }
-  }
+}
 
   async function handleStatusChange(taskId: number, newStatus: Task["status"]) {
-  // Optimistic update: change the UI immediately, before the API confirms it
-  const previousTasks = tasks;
-  setTasks((current) =>
-    current.map((t) => (t.id === taskId ? { ...t, status: newStatus } : t))
-  );
+    const previousTasks = tasks;
+    setTasks((current) =>
+      current.map((t) => (t.id === taskId ? { ...t, status: newStatus } : t))
+    );
 
-  try {
-    await api.patch(`/projects/${projectId}/tasks/${taskId}`, { status: newStatus });
-  } catch (err) {
-    // Roll back on failure
-    setTasks(previousTasks);
-    setError(err instanceof ApiError ? err.message : "Failed to update task status");
-  }
+    try {
+      await api.patch(`/projects/${projectId}/tasks/${taskId}`, { status: newStatus });
+      const activityData = await api.get<ActivityLogEntry[]>(`/projects/${projectId}/activity`);
+      setActivity(activityData);
+    } catch (err) {
+      setTasks(previousTasks);
+      setError(err instanceof ApiError ? err.message : "Failed to update task status");
+    }
 }
 
   useEffect(() => {
@@ -124,6 +130,19 @@ function ProjectBoard({ projectId }: { projectId: number }) {
           Back to projects
         </button>
       </div>
+      
+      <button
+        onClick={() => setShowActivity(!showActivity)}
+        className="text-sm underline"
+      >
+        {showActivity ? "Hide" : "Show"} activity log
+      </button>
+
+      {showActivity && (
+        <div className="border rounded p-4 max-h-64 overflow-y-auto">
+          <ActivityLog entries={activity} />
+        </div>
+      )}
 
       <form onSubmit={handleCreateTask} className="border rounded p-4 space-y-3">
         <p className="font-medium text-sm">New task</p>

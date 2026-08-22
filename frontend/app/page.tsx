@@ -1,19 +1,16 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { useAuth } from "@/lib/auth-context";
 
 export default function Home() {
-  const [status, setStatus] = useState("checking...");
+  const { user, loading } = useAuth();
+  const router = useRouter();
 
   useEffect(() => {
-    fetch("http://localhost:8000/health")
-      .then((res) => res.json())
-      .then((data) => setStatus(data.status))
-      .catch(() => setStatus("backend unreachable"));
-  }, []);
+    if (loading) return;
+    router.push(user ? "/projects" : "/login");
+  }, [user, loading, router]);
 
-  return (
-    <main className="flex min-h-screen items-center justify-center">
-      <p>Backend status: {status}</p>
-    </main>
-  );
+  return <div className="flex min-h-screen items-center justify-center">Loading...</div>;
 }
